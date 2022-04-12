@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using EFCore.Domain;
 using EFCore.Repo;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace EFCore.WebAPI.Controllers {
     [Route("api/[controller]")]
@@ -18,9 +16,15 @@ namespace EFCore.WebAPI.Controllers {
         // GET api/values
         [HttpGet ("Filtro/{nome}")]
         public ActionResult GetFiltro(string nome) {
+            
+            // var listaHeroi = (from heroi in _context.Herois
+            //                   where heroi.Nome.Contains(nome)
+            //                   select heroi).ToList();
+
             var listaHeroi = (from heroi in _context.Herois
-                              where heroi.Nome.Contains(nome)
-                              select heroi).ToList();
+                              where EF.Functions.Like(heroi.Nome, $"%{nome}%")
+                              orderby heroi.Id
+                              select heroi).FirstOrDefault();
 
             return Ok(listaHeroi);
         }
@@ -28,14 +32,14 @@ namespace EFCore.WebAPI.Controllers {
         // GET api/values/5
         [HttpGet("Atualizar/{nameHero}")]
         public ActionResult Get(string nameHero) {
-            // var heroi = new Heroi { Nome = nameHero };
 
-            var heroiId = (from heroi in _context.Herois
-                           where (heroi.Id == 3)
-                           select heroi).FirstOrDefault();
+            var heroi = _context.Herois
+                        .Where (h => h.Id == 3)
+                        .FirstOrDefault();
 
-            heroiId.Nome = "Homem Aranha";
-            // _context.Herois.Add(heroiId);
+            heroi.Nome = "Homem Aranha";
+
+            // _context.Herois.Add(heroi);
             _context.SaveChanges();
 
             return Ok();
