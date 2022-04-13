@@ -7,23 +7,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-
 namespace EFCore.WebAPI.Controllers {
     [Route("api/[controller]")]
     [ApiController]
     public class BatalhaController : ControllerBase {
+        private readonly IEFCoreRepository _repo;
 
-        private readonly HeroiContext _context;
-        public BatalhaController(HeroiContext context) {
-            _context = context;
+        public BatalhaController(IEFCoreRepository repo) {
+            _repo = repo;
         }
+
         // GET: api/<BatalhaController>
         [HttpGet]
-        public ActionResult Get() {
-            try { 
-
-                return Ok(new Batalha());
+        public async Task<IActionResult> Get() {
+            try {
+                var batalhas = await _repo.GetAllBatalhas();
+                return Ok(batalhas);
             }
             catch (Exception e) {
 
@@ -32,52 +31,78 @@ namespace EFCore.WebAPI.Controllers {
         }
 
         // GET api/<BatalhaController>/5
-        [HttpGet("{id}", Name ="GetBatalha")]
-        public string Get(int id) {
-            return "value";
+        [HttpGet("{id}", Name = "GetBatalha")]
+        public async Task<IActionResult> Get(int id) {
+            try {
+                var batalha = await _repo.GetBatalhaById(id, true);
+                return Ok(batalha);
+            }
+            catch (Exception e) {
+
+                return BadRequest($"Erro: {e.Message}");
+            }
         }
 
         // POST api/<BatalhaController>
         [HttpPost]
-        public ActionResult Post(Batalha model) {
+        public async Task<IActionResult> Post(Batalha model) {
             try {
-                _context.Batalhas.Add(model);
-                _context.SaveChanges();
+                _repo.Add(model);
 
-                return Ok("BAZINGA");
+                if (await _repo.SaveChangeAsync()) {
+                    return Ok("Sucess!");
+                }
             }
             catch (Exception e) {
 
                 return BadRequest($"Erro: {e.Message}");
             }
+
+            return BadRequest("Denied!");
         }
 
         // PUT api/<BatalhaController>/5
         [HttpPut("{id}")]
-        public ActionResult Put(int id, Batalha model) {
+        public async Task<IActionResult> Put(int id, Batalha model) {
             try {
-                // if (_context.Herois.Find(id) != null) -> Find - trava o objeto e não deixa alterar
+                var batalha = await _repo.GetBatalhaById(id);
 
-                if (_context.Batalhas.AsNoTracking().FirstOrDefault(h => h.Id == id) != null) {
+                if (batalha != null) {
+                    _repo.Update(model);
 
-                    _context.Batalhas.Update(model);
-                    _context.SaveChanges();
-
-                    return Ok("BAZINGA");
+                    if (await _repo.SaveChangeAsync()) {
+                        return Ok("Sucess!");
+                    }
                 }
-
-                return Ok("Não Encontrado!");
-
             }
             catch (Exception e) {
 
                 return BadRequest($"Erro: {e.Message}");
             }
-        }
 
+            return BadRequest("Não Encontrado!");
+        }
+    
         // DELETE api/<BatalhaController>/5
         [HttpDelete("{id}")]
-        public void Delete(int id) {
+        public async Task<IActionResult> Delete(int id) {
+            try {
+                var batalha = await _repo.GetBatalhaById(id);
+
+                if (batalha != null) {
+                    _repo.Delete(batalha);
+                    
+                    if(await _repo.SaveChangeAsync()) {
+                        return Ok("Sucess!");
+                    }
+                }
+            }
+            catch (Exception e) {
+
+                return BadRequest($"Erro: {e.Message}");
+            }
+
+            return BadRequest("Denied!");
         }
     }
 }

@@ -12,18 +12,18 @@ namespace EFCore.WebAPI.Controllers {
     [Route("api/[controller]")]
     [ApiController]
     public class HeroiController : ControllerBase {
+        private readonly IEFCoreRepository _context;
 
-        private readonly HeroiContext _context;
-        public HeroiController(HeroiContext context) {
+        public HeroiController(IEFCoreRepository context) {
             _context = context;
         }
 
         // GET: api/<HeroiController>
         [HttpGet]
-        public ActionResult Get() {
-
+        public async Task<IActionResult> Get() {
             try {
-                return Ok(new Heroi());
+                var herois =  await _context.GetAllHerois();
+                return Ok(herois);
             }
             catch (Exception e) {
 
@@ -33,51 +33,77 @@ namespace EFCore.WebAPI.Controllers {
 
         // GET api/<HeroiController>/5
         [HttpGet("{id}")]
-        public ActionResult Get(int id) {
-            return Ok("value");
+        public async Task<IActionResult> Get(int id) {
+            try {
+                var heroi = await _context.GetHeroiById(id, true);
+                return Ok(heroi);
+            }
+            catch (Exception e) {
+
+                return BadRequest($"Erro: {e.Message}");
+            }
         }
 
         // POST api/<HeroiController>
         [HttpPost]
-        public ActionResult Post(Heroi model) {
+        public async Task<IActionResult> Post(Heroi model) {
             try {
-                _context.Herois.Add(model);
-                _context.SaveChanges();
+                _context.Add(model);
 
-                return Ok("BAZINGA");
+                if(await _context.SaveChangeAsync()){
+                    return Ok("Sucess!");
+                }
             }
             catch (Exception e) {
 
                 return BadRequest($"Erro: {e.Message}");
             }
+
+            return BadRequest("Denied!");
         }
 
         // PUT api/<HeroiController>/5
         [HttpPut("{id}")]
-        public ActionResult Put(int id, Heroi model) {
+        public async Task<IActionResult> Put(int id, Heroi model) {
             try {
-                // if (_context.Herois.Find(id) != null) -> Find - trava o objeto e não deixa alterar
-                
-                if (_context.Herois.AsNoTracking().FirstOrDefault(h => h.Id == id) != null) {
-                    
-                    _context.Herois.Update(model);
-                    _context.SaveChanges();
+                var heroi = await _context.GetBatalhaById(id);
 
-                    return Ok("BAZINGA");
+                if (heroi != null) {
+                    _context.Update(model);
+
+                    if (await _context.SaveChangeAsync()) {
+                        return Ok("Sucess!");
+                    }
                 }
-
-                return Ok("Não Encontrado!");
-
             }
             catch (Exception e) {
 
                 return BadRequest($"Erro: {e.Message}");
             }
+
+            return BadRequest("Não Encontrado!");
         }
 
         // DELETE api/<HeroiController>/5
         [HttpDelete("{id}")]
-        public void Delete(int id) {
+        public async Task<IActionResult> Delete(int id) {
+            try {
+                var heroi = await _context.GetHeroiById(id);
+
+                if (heroi != null) {
+                    _context.Delete(heroi);
+
+                    if (await _context.SaveChangeAsync()) {
+                        return Ok("Sucess!");
+                    }
+                }
+            }
+            catch (Exception e) {
+
+                return BadRequest($"Erro: {e.Message}");
+            }
+
+            return BadRequest("Não Encontrado!");
         }
     }
 }
